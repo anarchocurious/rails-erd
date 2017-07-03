@@ -15,7 +15,7 @@ module RailsERD
       class << self
         def from_associations(domain, associations) # @private :nodoc:
           assoc_groups = associations.group_by { |assoc| association_identity(assoc) }
-          assoc_groups.collect { |_, assoc_group| new(domain, assoc_group.to_a) }
+          assoc_groups.collect { |_, assoc_group| new(domain, assoc_group.to_a) }.reject { |models| models.source == models.destination }
         end
 
         private
@@ -36,11 +36,19 @@ module RailsERD
         end
 
         def association_owner(association)
-          association.options[:as] ? association.options[:as].to_s.classify : association.active_record.name
+          association.options[:as] ? polymorphic_name(association) : association.active_record.name
         end
 
         def association_target(association)
           association.options[:polymorphic] ? association.class_name : association.klass.name
+        end
+
+        def polymorphic_name(association)
+          if association.inverse_of && association.inverse_of.class_name
+            association.inverse_of.class_name
+          else
+            association.options[:as].to_s.classify
+          end
         end
       end
 

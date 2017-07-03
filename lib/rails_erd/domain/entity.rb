@@ -16,8 +16,16 @@ module RailsERD
 
         def abstract_from_models(domain, models)
           models.collect(&:reflect_on_all_associations).flatten.collect { |association|
-            association.options[:as].to_s.classify if association.options[:as]
+            polymorphic_name(association) if association.options[:as]
           }.flatten.compact.uniq.collect { |name| new(domain, name) }
+        end
+
+        def polymorphic_name(association)
+          if association.inverse_of && association.inverse_of.class_name
+            association.inverse_of.class_name
+          else
+            association.options[:as].to_s.classify
+          end
         end
       end
 

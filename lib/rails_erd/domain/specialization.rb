@@ -10,14 +10,14 @@ module RailsERD
           models = polymorphic_from_models(domain, models) +
             inheritance_from_models(domain, models) +
             abstract_from_models(domain, models)
-          models.sort
+          models.reject { |models| models.generalized == models.specialized }.sort
         end
 
         private
 
         def polymorphic_from_models(domain, models)
           models.collect(&:reflect_on_all_associations).flatten.collect { |association|
-            [association.options[:as].to_s.classify, association.active_record.name] if association.options[:as]
+            [polymorphic_name(association), association.active_record.name] if association.options[:as]
           }.compact.uniq.collect { |names|
             new(domain, domain.entity_by_name(names.first), domain.entity_by_name(names.last))
           }
@@ -33,6 +33,14 @@ module RailsERD
           models.select(&:abstract_class?).collect(&:direct_descendants).flatten.collect { |model|
             new(domain, domain.entity_by_name(model.superclass.name), domain.entity_by_name(model.name))
           }
+        end
+
+        def polymorphic_name(association)
+          if association.inverse_of && association.inverse_of.class_name
+            association.inverse_of.class_name
+          else
+            association.options[:as].to_s.classify
+          end
         end
       end
 
